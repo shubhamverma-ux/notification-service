@@ -60,7 +60,7 @@ public class CleverTapStockNotificationService implements StockNotificationServi
             Map<String, Object> evtData = new HashMap<>();
             evtData.put("notification_type", "BACK_IN_STOCK");
             evtData.put("stock_status", "available");
-            evtData.put("Item_id", String.valueOf(event.getItemId()));
+            evtData.put("productId", String.valueOf(event.getItemId()));
             evtData.put("sku", event.getSku());
 
             if (event.getScreen() != null) {
