@@ -1,0 +1,120 @@
+buildscript {
+    dependencies {
+        classpath 'com.mysql:mysql-connector-j:8.3.0'
+        classpath 'org.flywaydb:flyway-mysql:10.10.0'
+    }
+}
+
+plugins {
+    id 'org.springframework.boot' version '3.3.4'
+    id 'io.spring.dependency-management' version '1.1.6'
+    id 'java'
+    id 'jacoco'
+    id 'org.flywaydb.flyway' version '10.10.0'
+}
+
+group = 'com.ozi.notification'
+version = '0.0.1-SNAPSHOT'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // Spring Boot Starters
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-validation'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+    // HTTP Client for external API calls
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+
+    // AWS SQS
+    implementation platform('software.amazon.awssdk:bom:2.25.16')
+    implementation 'software.amazon.awssdk:sqs'
+    implementation 'software.amazon.awssdk:sts'
+
+    // Database
+    implementation 'com.mysql:mysql-connector-j'
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.flywaydb:flyway-mysql'
+
+    // Hibernate Types for JSON support
+    implementation 'io.hypersistence:hypersistence-utils-hibernate-63:3.7.3'
+
+    /** H2 Database for testing */
+    testRuntimeOnly 'com.h2database:h2'
+
+    // JSON Processing
+    implementation 'com.fasterxml.jackson.core:jackson-databind'
+    implementation 'com.fasterxml.jackson.datatype:jackson-datatype-jsr310'
+
+    // Validation
+    implementation 'jakarta.validation:jakarta.validation-api'
+    implementation 'org.hibernate.validator:hibernate-validator'
+
+    // Utilities
+    implementation 'org.apache.commons:commons-lang3'
+    implementation 'org.jetbrains:annotations:24.1.0'
+
+    // Dotenv for loading .env files
+    implementation 'me.paulschwarz:spring-dotenv:4.0.0'
+
+    // Lombok
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+
+    /** Swagger/OpenAPI */
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.5.0'
+
+    // Testing
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.testcontainers:junit-jupiter'
+    testImplementation 'org.testcontainers:mysql'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    testCompileOnly 'org.projectlombok:lombok'
+    testAnnotationProcessor 'org.projectlombok:lombok'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.8
+            }
+        }
+    }
+}
+
+check.dependsOn jacocoTestCoverageVerification
+
+// Flyway configuration for repair/migrate tasks
+flyway {
+    url = System.getenv('DB_HOST') ?
+        "jdbc:mysql://${System.getenv('DB_HOST')}:${System.getenv('DB_PORT') ?: '3306'}/${System.getenv('DB_NAME')}" :
+        'jdbc:mysql://localhost:3306/notification_db_dev'
+    user = System.getenv('DB_USER') ?: 'dev_user'
+    password = System.getenv('DB_PASSWORD') ?: 'dev_password'
+    locations = ['classpath:db/migration']
+}
