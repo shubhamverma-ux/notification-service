@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
  * REST controller for notification operations.
  */
 @RestController
-@RequestMapping("/notifications")
+@RequestMapping("/api/v1/notifications")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Notification API", description = "API for sending and managing notifications")

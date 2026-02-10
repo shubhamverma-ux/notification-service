@@ -25,7 +25,7 @@ import java.util.stream.Collectors;
  * REST controller for stock notification operations.
  */
 @RestController
-@RequestMapping("/stock-notifications")
+@RequestMapping("/api/v1/stock-notifications")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Stock Notification API", description = "API for managing back-in-stock notifications")
