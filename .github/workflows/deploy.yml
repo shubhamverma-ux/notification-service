@@ -15,22 +15,14 @@ permissions:
   contents: read
 
 jobs:
-  deploy:
-    name: Deploy to ${{ github.event.inputs.environment }}
+  # ── DEV (EC2) ──────────────────────────────
+  deploy-dev:
+    name: Deploy to Dev (EC2)
+    if: ${{ github.event.inputs.environment == 'dev' }}
     runs-on: ubuntu-latest
 
-    env:
-      AWS_REGION: ${{ vars.AWS_REGION }}
-      ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
-      ECS_SERVICE: ${{ vars.ECS_SERVICE }}
-      ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
-      ECS_TASK_DEFINITION: .aws/task-definition.json
-      CONTAINER_NAME: ${{ vars.CONTAINER_NAME }}
-
     steps:
-      # ── DEV (EC2) ──────────────────────────────
       - name: Deploy to Dev (EC2) via SSH
-        if: ${{ github.event.inputs.environment == 'dev' }}
         uses: appleboy/ssh-action@v1
         env:
           DEV_ENV_FILE: ${{ secrets.DEV_ENV_FILE }}
@@ -45,13 +37,25 @@ jobs:
             echo "$DEV_ENV_FILE" > .env
             docker compose up --build -d
 
-      # ── PROD (ECS) ─────────────────────────────
+  # ── PROD (ECS) ─────────────────────────────
+  deploy-prod:
+    name: Deploy to Prod (ECS)
+    if: ${{ github.event.inputs.environment == 'prod' }}
+    runs-on: ubuntu-latest
+
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+      ECS_SERVICE: ${{ vars.ECS_SERVICE }}
+      ECS_CLUSTER: ${{ vars.ECS_CLUSTER }}
+      ECS_TASK_DEFINITION: .aws/task-definition.json
+      CONTAINER_NAME: ${{ vars.CONTAINER_NAME }}
+
+    steps:
       - name: Checkout
-        if: ${{ github.event.inputs.environment == 'prod' }}
         uses: actions/checkout@v4
 
       - name: Configure AWS credentials
-        if: ${{ github.event.inputs.environment == 'prod' }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -59,12 +63,10 @@ jobs:
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR
-        if: ${{ github.event.inputs.environment == 'prod' }}
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build, tag, and push image to Amazon ECR
-        if: ${{ github.event.inputs.environment == 'prod' }}
         id: build-image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
@@ -75,7 +77,6 @@ jobs:
           echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
       - name: Fill in the new image ID in the ECS task definition
-        if: ${{ github.event.inputs.environment == 'prod' }}
         id: task-def
         uses: aws-actions/amazon-ecs-render-task-definition@v1
         with:
@@ -84,7 +85,6 @@ jobs:
           image: ${{ steps.build-image.outputs.image }}
 
       - name: Deploy Amazon ECS task definition
-        if: ${{ github.event.inputs.environment == 'prod' }}
         uses: aws-actions/amazon-ecs-deploy-task-definition@v2
         with:
           task-definition: ${{ steps.task-def.outputs.task-definition }}
