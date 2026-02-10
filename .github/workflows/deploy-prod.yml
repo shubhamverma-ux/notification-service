@@ -1,46 +1,14 @@
-name: Deploy
+name: Deploy Prod
 
 on:
   workflow_dispatch:
-    inputs:
-      environment:
-        description: "Target environment"
-        required: true
-        type: choice
-        options:
-          - dev
-          - prod
 
 permissions:
   contents: read
 
 jobs:
-  # ── DEV (EC2) ──────────────────────────────
-  deploy-dev:
-    name: Deploy to Dev (EC2)
-    if: ${{ github.event.inputs.environment == 'dev' }}
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Deploy to Dev (EC2) via SSH
-        uses: appleboy/ssh-action@v1
-        env:
-          DEV_ENV_FILE: ${{ secrets.DEV_ENV_FILE }}
-        with:
-          host: ${{ vars.DEV_EC2_HOST }}
-          username: ${{ vars.DEV_EC2_USER }}
-          key: ${{ secrets.DEV_EC2_SSH_KEY }}
-          envs: DEV_ENV_FILE
-          script: |
-            cd ${{ vars.DEV_APP_DIR }}
-            git pull origin ${{ github.ref_name }}
-            echo "$DEV_ENV_FILE" > .env
-            docker compose up --build -d
-
-  # ── PROD (ECS) ─────────────────────────────
-  deploy-prod:
+  deploy:
     name: Deploy to Prod (ECS)
-    if: ${{ github.event.inputs.environment == 'prod' }}
     runs-on: ubuntu-latest
 
     env:
